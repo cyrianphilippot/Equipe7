@@ -1,2 +1,4 @@
 # Equipe7
-sql projet
+sql project
+
+Mat-malo-léa-cici
