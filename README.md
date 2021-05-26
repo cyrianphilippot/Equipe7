@@ -3,8 +3,8 @@
 
 Notre projet sql a pour thème l'école.
 
-- Pour la contruire ta base de donnée : [Création](/scripts/crea-base.sql)
-- Pour le remplissage de ta base de donnée : [Remplissage](/scripts/filling-base.sql)
-- Pour le requêter ta base de donnée : [Requêtes](/scripts/request.sql)
+- Pour construire la base de donnée : [Création](/scripts/crea-base.sql)
+- Pour le remplissage de la base de donnée : [Remplissage](/scripts/filling-base.sql)
+- Pour le requêtage de la base de donnée : [Requêtes](/scripts/request.sql)
 
-Orchester par Mathieu-Malory-Léa-Cyrian
+Réalisé par Mathieu-Malory-Léa-Cyrian
