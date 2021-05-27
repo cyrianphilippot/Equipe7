@@ -18,27 +18,6 @@ SELECT * FROM Student_classes
 SELECT * FROM Students
 */
 
-------------------------------- CURSOR 1/4 -------------------------------
--- Quelle est la liste de tout les prénoms de l'ensemble des élèves
-BEGIN TRAN
-
-DECLARE @firstname varchar(10)
-
-DECLARE curseur_students CURSOR FOR (SELECT firstname FROM Students)
-OPEN curseur_students
-FETCH curseur_students INTO @firstname
-
-WHILE @@FETCH_STATUS = 0
-
-BEGIN 
-	PRINT @firstname
-	FETCH NEXT FROM curseur_students INTO @firstname
-END
-CLOSE curseur_students
-DEALLOCATE curseur_students 
-
-ROLLBACK TRAN
-
 
 
 ------------------------------- Requêtes compréhension BDD 5/5 -------------------------------
@@ -67,6 +46,93 @@ INNER JOIN Students s ON s.student_id = sc.student_id
 INNER JOIN Institutions i ON i.institution_id = s.institution_id
 GROUP BY i.name
 ORDER BY 'nombre de classes par ecoles' DESC
+
+
+
+------------------------------- TRIGGERS 4/4 -------------------------------
+
+--Update la date d'aujourd'hui à la hiredate() lorsqu'on veut insert un professeur
+CREATE OR ALTER TRIGGER Updatefire
+ON Teachers
+AFTER INSERT
+AS
+BEGIN
+    UPDATE Teachers SET
+        hireDate = GETDATE()
+            WHERE teacher_id = (SELECT i.teacher_id FROM INSERTED i)
+END
+
+
+--A la place de supprimer un professeur, met a jour sa firedate à la date du jour
+CREATE OR ALTER TRIGGER DeleteTeacher ON Teachers
+INSTEAD OF DELETE
+AS
+BEGIN
+    UPDATE Teachers SET
+    fireDate = GETDATE()
+        WHERE teacher_id = (SELECT d.teacher_id FROM DELETED d)
+END
+
+
+--Renvoie une erreur si on créer un cours avec un prof qui n'enseigne pas la matiere
+CREATE OR ALTER TRIGGER classes_teacher
+ON Classes
+INSTEAD OF INSERT
+AS
+BEGIN
+    IF NOT EXISTS(SELECT i.subject_id, i.teacher_id from INSERTED i INTERSECT SELECT subject_id, teacher_id FROM Teaching_Details)
+    BEGIN
+        RAISERROR('Est-ce une matiere enseignée par le professeur ?', 16, 1)
+    END
+END
+
+
+--Renvoie une erreur si on ajoute plus de 30 eleves dans une même classe
+CREATE OR ALTER TRIGGER max_eleve_par_classe
+ON Student_classes
+INSTEAD OF INSERT
+AS
+BEGIN
+    IF (SELECT COUNT(student_id) from Student_classes where class_id=(select i.class_id from INSERTED i)) >= 30
+    BEGIN
+        RAISERROR('Tu ne peux pas ajouter plus de 30 élèves par classe', 16, 1)
+    END
+END
+
+
+
+------------------------------- FONCTIONS 0/2 -------------------------------
+
+
+
+------------------------------- PROCEDURE STOCKEES 0/2 -------------------------------
+
+
+
+------------------------------- CURSOR 1/1 -------------------------------
+-- Quelle est la liste de tout les prénoms de l'ensemble des élèves
+BEGIN TRAN
+
+DECLARE @firstname varchar(10)
+
+DECLARE curseur_students CURSOR FOR (SELECT firstname FROM Students)
+OPEN curseur_students
+FETCH curseur_students INTO @firstname
+
+WHILE @@FETCH_STATUS = 0
+
+BEGIN 
+	PRINT @firstname
+	FETCH NEXT FROM curseur_students INTO @firstname
+END
+CLOSE curseur_students
+DEALLOCATE curseur_students 
+
+ROLLBACK TRAN
+
+
+
+------------------------------- CONVERTION / CONCAT / SOUS-REQUETE / FONCTION DE GROUPE 0/1 -------------------------------
 
 
 
