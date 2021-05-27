@@ -7,4 +7,4 @@ Notre projet sql a pour thème l'école.
 - Pour le remplissage de la base de donnée : [Remplissage](/scripts/filling-base.sql)
 - Pour le requêtage de la base de donnée : [Requêtes](/scripts/request.sql)
 
-Réalisé par Mathieu-Malory-Léa-Cyrian
+Orchestré par Mathieu-Malory-Léa-Cyrian
