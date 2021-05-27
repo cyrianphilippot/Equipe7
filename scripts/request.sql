@@ -39,7 +39,7 @@ SELECT institution_id, name, creationDate FROM Institutions
 ORDER BY creationDate ASC
 
 
---1 requete de concat / fonction de groupe / convertion
+--1 requete de concat / fonction de groupe
 --5 Combien y a t'il de classes dans chaque école ?
 SELECT CONCAT(COUNT(cr.classroom_id), ' at ', i.name) AS 'Number of classes per school' FROM Classrooms cr
 INNER JOIN Classes c ON c.classroom_id = cr.classroom_id
@@ -62,9 +62,14 @@ BEGIN
         hireDate = GETDATE()
             WHERE teacher_id = (SELECT i.teacher_id FROM INSERTED i)
 END
+/*
+créer un professeur
+INSERT INTO Teachers(lastname, firstname, birthdate, institution_id)
+VALUES()
+*/
+SELECT * FROM Teachers
 
-
---2 A la place de supprimer un professeur, met à jour sa firedate à la date du jour
+--2 A la place de supprimer un professeur, met a jour sa firedate à la date du jour
 CREATE OR ALTER TRIGGER DeleteTeacher ON Teachers
 INSTEAD OF DELETE
 AS
@@ -73,9 +78,12 @@ BEGIN
     fireDate = GETDATE()
         WHERE teacher_id = (SELECT d.teacher_id FROM DELETED d)
 END
+/*
+DELETE FROM Teachers WHERE teacher_id = 12
+SELECT * FROM Teachers
+*/
 
-
---3 Renvoie une erreur si on crée un cours avec un prof qui n'enseigne pas la matière
+--3 Renvoie une erreur si on créer un cours avec un prof qui n'enseigne pas la matiere
 CREATE OR ALTER TRIGGER classes_teacher
 ON Classes
 INSTEAD OF INSERT
@@ -83,23 +91,50 @@ AS
 BEGIN
     IF NOT EXISTS(SELECT i.subject_id, i.teacher_id from INSERTED i INTERSECT SELECT subject_id, teacher_id FROM Teaching_Details)
     BEGIN
-        RAISERROR('Is it a subject taught by the teacher?', 16, 1)
+        RAISERROR('Is it a subject taught by this teacher?', 16, 1)
     END
+	ELSE
+	BEGIN
+		INSERT INTO Classes(classroom_id, subject_id, teacher_id, date)
+		SELECT i.Classroom_id, i.subject_id, i.teacher_id, i.date FROM inserted i
+		RAISERROR('Classes added', 16, 1)
+	END
 END
 
+/*
+INSERT INTO Classes(classroom_id, subject_id, teacher_id, date)
+VALUES(2, 2, 1, '20200101')
+SELECT * FROM Teaching_details
+SELECT * FROM Classes
+WHERE subject_id = 2
+*/
 
---4 Renvoie une erreur si on ajoute plus de 30 élèves dans une même classe
+
+
+--4 Renvoie une erreur si on ajoute plus de 20 eleves dans une même classe
 CREATE OR ALTER TRIGGER max_eleve_par_classe
 ON Student_classes
 INSTEAD OF INSERT
 AS
 BEGIN
-    IF (SELECT COUNT(student_id) from Student_classes where class_id=(select i.class_id from INSERTED i)) >= 30
+    IF (SELECT COUNT(student_id) from Student_classes where class_id=(select i.class_id from INSERTED i)) >= 20 -- set to 20 for test
     BEGIN
-        RAISERROR('You cannot add more than 30 students per class', 16, 1)
+        RAISERROR('You cannot add more than 20 students per class', 16, 1)
     END
+	ELSE
+	BEGIN
+		INSERT INTO Student_classes(class_id, student_id)
+		SELECT i.class_id, i.student_id FROM inserted i
+		RAISERROR('Student_classes added', 16, 1)
+	END
 END
+/*
+SELECT count(student_id) AS 'nb students', class_id FROM Student_classes
+GROUP BY class_id
 
+INSERT INTO Student_classes(class_id, student_id)
+VALUES(3, 1)
+*/
 
 
 ------------------------------- FONCTIONS 3/2 -------------------------------
@@ -108,41 +143,43 @@ CREATE OR ALTER FUNCTION FindClassrooms(@student_id INT)
     RETURNS Table
     AS
     RETURN 
-        Select cl.name, c.class_id from classes c
+        SELECT cl.name, c.class_id, CONCAT(s.lastname, ' ', s.firstname) AS 'Indentity' FROM classes c
         INNER JOIN Student_classes sc ON c.class_id=sc.class_id
         INNER JOIN Classrooms cl ON cl.classroom_id=c.classroom_id
-        where sc.student_id=@student_id
+		INNER JOIN Students s ON sc.student_id = s.student_id
+        WHERE sc.student_id=@student_id
 
 SELECT * from FindClassrooms(2)
 
 
---2 Créer une fonction qui te donne les noms des profs d'un étudiant
+--2 Créer une fonction qui donne le nom des profs d'un étudiant
 CREATE OR ALTER FUNCTION FindTeachers(@student_id INT)
     RETURNS Table
     AS
     RETURN 
-        Select CONCAT(t.firstname, ' ', t.lastname) AS 'Name of the teachers' FROM Teachers t
-        INNER JOIN classes c ON t.teacher_id=c.teacher_id
-        INNER JOIN Student_classes sc ON c.class_id=sc.class_id
-        INNER JOIN Classrooms cl ON cl.classroom_id=c.classroom_id
-        where sc.student_id= @student_id
-        group by t.firstname, t.lastname
+        SELECT CONCAT(t.firstname, ' ', t.lastname) AS 'Name of the teachers', CONCAT(s.firstname, ' ', s.lastname) AS 'Name of the students' FROM Teachers t
+        INNER JOIN classes c ON t.teacher_id = c.teacher_id
+        INNER JOIN Student_classes sc ON c.class_id = sc.class_id
+        INNER JOIN Classrooms cl ON cl.classroom_id = c.classroom_id
+		INNER JOIN Students s ON s.student_id = sc.student_id
+        WHERE sc.student_id= @student_id
+        GROUP BY t.firstname, t.lastname, s.firstname, s.lastname
         
 
 SELECT * from FindTeachers(1)
 
 
---3 Créer une fonction qui te donne tous les noms des étudiants d'un seul prof
+--3 Créer une fonction qui donne le nom des étudiants d'un seul prof
 CREATE OR ALTER FUNCTION FindStudents(@teacher_id INT)
     RETURNS Table
     AS
     RETURN 
-        Select CONCAT(s.firstname, ' ', s.lastname) AS 'Name of the students' FROM Students s
+        Select CONCAT(s.firstname, ' ', s.lastname) AS 'Name of the students', CONCAT(t.firstname, ' ', t.lastname) AS 'Name of the teacher' FROM Students s
         INNER JOIN Student_classes sc ON s.student_id=sc.student_id
         INNER JOIN classes c ON sc.class_id=c.class_id
         INNER JOIN Teachers t ON c.teacher_id=t.teacher_id
         where t.teacher_id=1
-        group by s.firstname, s.lastname
+        group by s.firstname, s.lastname, t.firstname, t.lastname
         
 
 SELECT * from FindStudents(1)
@@ -180,18 +217,19 @@ EXEC NumberSubjectsPerStudents @student_id = 30
 
 
 ------------------------------- CURSEUR 1/1 -------------------------------
---1 Quelle est la liste de tous les prénoms de l'ensemble des élèves ?
-DECLARE @firstname varchar(10)
+--1 Quelle est la liste de tous les prénoms et noms de l'ensemble des élèves ?
+DECLARE @firstname varchar(100)
+DECLARE @lastname varchar(100)
 
-DECLARE curseur_students CURSOR FOR (SELECT firstname FROM Students)
+DECLARE curseur_students CURSOR FOR (SELECT firstname, lastname FROM Students)
 OPEN curseur_students
-FETCH curseur_students INTO @firstname
+FETCH curseur_students INTO @firstname, @lastname
 
 WHILE @@FETCH_STATUS = 0
 
 BEGIN 
-	PRINT @firstname
-	FETCH NEXT FROM curseur_students INTO @firstname
+	PRINT CONCAT(@firstname, ' ', @lastname)
+	FETCH NEXT FROM curseur_students INTO @firstname, @lastname
 END
 CLOSE curseur_students
 DEALLOCATE curseur_students 
@@ -199,10 +237,12 @@ DEALLOCATE curseur_students
 
 
 ------------------------------- CONVERTION / CONCAT / SOUS-REQUETE / FONCTION DE GROUPE 1/1 -------------------------------
---1 Calculer la part du salaire de chaque professeur par rapport à la masse salariale
-SELECT t.lastname, t.salary, (t.salary / t2.Masse) * 100 AS '%' FROM Teachers t,
+-- conversion + sous-requete
+--1 Calculer la part du salaire de chaque professeur par rapport a la masse salariale et leur date d'embauche
+SELECT t.lastname, t.salary, (t.salary / t2.Masse) * 100 AS '%' , FORMAT(hireDate, 'dddd dd MMMM yyyy') AS 'hire date' FROM Teachers t,
 (SELECT SUM(salary) as 'Masse' FROM Teachers) t2
 ORDER BY t.salary DESC
+
 
 
 
