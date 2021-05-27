@@ -64,7 +64,7 @@ BEGIN
 END
 
 
---2 A la place de supprimer un professeur, met a jour sa firedate à la date du jour
+--2 A la place de supprimer un professeur, met à jour sa firedate à la date du jour
 CREATE OR ALTER TRIGGER DeleteTeacher ON Teachers
 INSTEAD OF DELETE
 AS
@@ -75,7 +75,7 @@ BEGIN
 END
 
 
---3 Renvoie une erreur si on créer un cours avec un prof qui n'enseigne pas la matiere
+--3 Renvoie une erreur si on crée un cours avec un prof qui n'enseigne pas la matière
 CREATE OR ALTER TRIGGER classes_teacher
 ON Classes
 INSTEAD OF INSERT
@@ -88,7 +88,7 @@ BEGIN
 END
 
 
---4 Renvoie une erreur si on ajoute plus de 30 eleves dans une même classe
+--4 Renvoie une erreur si on ajoute plus de 30 élèves dans une même classe
 CREATE OR ALTER TRIGGER max_eleve_par_classe
 ON Student_classes
 INSTEAD OF INSERT
@@ -148,7 +148,7 @@ CREATE OR ALTER FUNCTION FindStudents(@teacher_id INT)
 SELECT * from FindStudents(1)
 
 
-------------------------------- PROCEDURE STOCKEES 1/2 -------------------------------
+------------------------------- PROCEDURES STOCKEES 2/2 -------------------------------
 --1 Créer une procédure qui affiche le nombre d'eleves qui particpent aux cours d'un professeur donnée
 CREATE OR ALTER PROCEDURE NumberStudentsPerClassesForATeacher(@teacher_id INT)
 AS
@@ -162,6 +162,20 @@ BEGIN
 END
 
 EXEC NumberStudentsPerClassesForATeacher @teacher_id =3
+
+
+--2 Créer une procédure qui affiche le nombre de matières enseignées pour un élève données
+CREATE OR ALTER PROCEDURE NumberSubjectsPerStudents(@student_id INT)
+AS
+BEGIN
+    SELECT s.name FROM Subjects s 
+	INNER JOIN Classes c ON c.subject_id = s.subject_id
+	INNER JOIN Student_classes sc ON c.class_id = sc.class_id
+	WHERE student_id = @student_id
+
+END;
+
+EXEC NumberSubjectsPerStudents @student_id = 30
 
 
 
@@ -185,8 +199,7 @@ DEALLOCATE curseur_students
 
 
 ------------------------------- CONVERTION / CONCAT / SOUS-REQUETE / FONCTION DE GROUPE 1/1 -------------------------------
-
---1 Calculer la part du salaire de chaque professeur par rapport a la masse salariale
+--1 Calculer la part du salaire de chaque professeur par rapport à la masse salariale
 SELECT t.lastname, t.salary, (t.salary / t2.Masse) * 100 AS '%' FROM Teachers t,
 (SELECT SUM(salary) as 'Masse' FROM Teachers) t2
 ORDER BY t.salary DESC
@@ -207,7 +220,6 @@ WHERE lower(name) LIKE 'null'
 
 
 --3 Créer une fonction vérifie si y'a plus ou moins de 30 elèves par classe
-
 DECLARE @class_id INT = 1
 DECLARE @subjectname VARCHAR(128)
 DECLARE @institutionname VARCHAR(128)
