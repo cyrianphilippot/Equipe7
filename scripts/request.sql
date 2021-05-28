@@ -216,7 +216,7 @@ EXEC NumberSubjectsPerStudents @student_id = 30
 
 
 
-------------------------------- CURSEUR 1/1 -------------------------------
+------------------------------- CURSEUR 2/1 -------------------------------
 --1 Quelle est la liste de tous les prénoms et noms de l'ensemble des élèves ?
 DECLARE @firstname varchar(100)
 DECLARE @lastname varchar(100)
@@ -234,6 +234,29 @@ END
 CLOSE curseur_students
 DEALLOCATE curseur_students 
 
+
+--2 Vérifier que tous les eleves ont bien leur addresse d'enregistré ?
+
+DECLARE @address Varchar(128), @lastname Varchar(100), @firstname Varchar(100)
+
+DECLARE addressStudent CURSOR FOR (SELECT address, lastname, firstname FROM Students)
+OPEN addressStudent
+FETCH addressStudent INTO @address, @lastname, @firstname
+WHILE @@FETCH_STATUS =0
+BEGIN
+    IF (@address = NULL)
+    BEGIN 
+        PRINT 'Il faut demander à @student_name son adresse.'
+        FETCH NEXT FROM addressStudent INTO @address, @lastname, @firstname
+    END
+    ELSE 
+    BEGIN
+        PRINT 'adresse enregistrée pour '+@lastname + ' ' + @firstname
+        FETCH NEXT FROM addressStudent INTO @address, @lastname, @firstname
+    END
+END
+CLOSE addressStudent
+DEALLOCATE addressStudent
 
 
 ------------------------------- CONVERTION / CONCAT / SOUS-REQUETE / FONCTION DE GROUPE 1/1 -------------------------------
