@@ -8,3 +8,5 @@ Notre projet sql a pour thème l'école.
 - Pour le requêtage de la base de donnée : [Requêtes](/scripts/request.sql)
 
 Orchestré par Mathieu-Malory-Léa-Cyrian
+
+![La base de donnée](./documents/images/bdd.PNG)
